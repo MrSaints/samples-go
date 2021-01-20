@@ -11,11 +11,29 @@ import (
 func SampleParentWorkflow(ctx workflow.Context) (string, error) {
 	logger := workflow.GetLogger(ctx)
 
+	var childWorkflowID string
+	err := workflow.SetQueryHandler(ctx, "child-workflow-id", func(input []byte) (string, error) {
+		return childWorkflowID, nil
+	})
+	if err != nil {
+		return "", err
+	}
+
 	cwo := workflow.ChildWorkflowOptions{}
 	ctx = workflow.WithChildOptions(ctx, cwo)
 
+	childWorkflowFuture := workflow.ExecuteChildWorkflow(ctx, SampleChildWorkflow, "World")
+
+	var childWorkflowExecution workflow.Execution
+	err = childWorkflowFuture.GetChildWorkflowExecution().Get(ctx, &childWorkflowExecution)
+	if err != nil {
+		return "", err
+	}
+
+	childWorkflowID = childWorkflowExecution.ID
+
 	var result string
-	err := workflow.ExecuteChildWorkflow(ctx, SampleChildWorkflow, "World").Get(ctx, &result)
+	err = childWorkflowFuture.Get(ctx, &result)
 	if err != nil {
 		logger.Error("Parent execution received child execution failure.", "Error", err)
 		return "", err

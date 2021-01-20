@@ -9,5 +9,6 @@ func SampleChildWorkflow(ctx workflow.Context, name string) (string, error) {
 	logger := workflow.GetLogger(ctx)
 	greeting := "Hello " + name + "!"
 	logger.Info("Child workflow execution: " + greeting)
+	workflow.GetSignalChannel(ctx, "unblock").Receive(ctx, nil)
 	return greeting, nil
 }

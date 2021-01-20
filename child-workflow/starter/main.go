@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"time"
 
 	"github.com/pborman/uuid"
 	"go.temporal.io/sdk/client"
@@ -33,6 +34,42 @@ func main() {
 	}
 	log.Println("Started workflow",
 		"WorkflowID", workflowRun.GetID(), "RunID", workflowRun.GetRunID())
+
+	time.Sleep(time.Second)
+
+	log.Println("Cancelling")
+
+	v, err := c.QueryWorkflow(context.Background(), workflowRun.GetID(), "", "child-workflow-id")
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	var childWorkflowID string
+	err = v.Get(&childWorkflowID)
+	if err != nil {
+		log.Fatalln("Failed to get child workflow ID", err)
+	}
+
+	err = c.CancelWorkflow(context.Background(), childWorkflowID, "")
+	if err != nil {
+		log.Fatalln("Failed to cancel child workflow", err)
+	}
+
+	err = c.CancelWorkflow(context.Background(), workflowRun.GetID(), "")
+	if err != nil {
+		log.Fatalln("Failed to cancel parent workflow", err)
+	}
+
+	err = c.SignalWorkflow(
+		context.Background(),
+		childWorkflowID,
+		"",
+		"unblock",
+		nil,
+	)
+	if err != nil {
+		log.Fatalln("Failed to signal child workflow", err)
+	}
 
 	// Synchronously wait for the workflow completion. Behind the scenes the SDK performs a long poll operation.
 	// If you need to wait for the workflow completion from another process use
