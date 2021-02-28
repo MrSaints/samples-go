@@ -36,4 +36,9 @@ func main() {
 		log.Fatalln("Unable get workflow result", err)
 	}
 	log.Println("Workflow result:", result)
+
+	_, err = c.QueryWorkflow(context.Background(), we.GetID(), we.GetRunID(), "test-query")
+	if err != nil {
+		log.Fatalln("Unable to query workflow", err)
+	}
 }

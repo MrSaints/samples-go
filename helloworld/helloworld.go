@@ -19,6 +19,20 @@ func Workflow(ctx workflow.Context, name string) (string, error) {
 	logger := workflow.GetLogger(ctx)
 	logger.Info("HelloWorld workflow started", "name", name)
 
+	var uniqueID *string
+
+	v := workflow.GetVersion(ctx, "UniqueID", workflow.DefaultVersion, 1)
+	if v == 1 {
+		encodedUID := workflow.SideEffect(ctx, func(ctx workflow.Context) interface{} {
+			return "TEST-UNIQUE-ID"
+		})
+		err := encodedUID.Get(&uniqueID)
+		if err != nil {
+			logger.Error("Side effect failed.", "Error", err)
+			return "", err
+		}
+	}
+
 	var result string
 	err := workflow.ExecuteActivity(ctx, Activity, name).Get(ctx, &result)
 	if err != nil {
